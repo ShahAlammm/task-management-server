@@ -27,8 +27,10 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
 
-    const userCollection = client.db("taskDB").collection("users");
+    const usersCollection = client.db("taskDB").collection("users");
+    const userCollection = client.db("taskDB").collection("newUser");
     const taskCollection = client.db("taskDB").collection("tasks");
+    const reviewCollection = client.db("taskDB").collection("reviews");
 
     // jwt related api
     app.post("/jwt", async (req, res) => {
@@ -42,12 +44,15 @@ async function run() {
     // middlewares
     const verifyToken = (req, res, next) => {
       if (!req.headers.authorization) {
-        return res.status(401).send({ message: "unauthorized access" });
+        // Redirect to login page
+        return res.redirect("/login");
       }
+
       const token = req.headers.authorization.split(" ")[1];
       jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
         if (err) {
-          return res.status(401).send({ message: "unauthorized access" });
+          // Redirect to login page
+          return res.redirect("/login");
         }
         req.decoded = decoded;
         next();
@@ -56,18 +61,68 @@ async function run() {
 
     // users related api
     app.get("/users", async (req, res) => {
-      const result = await userCollection.find().toArray();
+      const result = await usersCollection.find().toArray();
+      res.send(result);
+    });
+    app.post("/newUser", async (req, res) => {
+      const user = req.body;
+      // you can do this many ways (1. email unique, 2. upsert 3. simple checking)
+      const query = { email: user.email };
+      const existingUser = await userCollection.findOne(query);
+      if (existingUser) {
+        return res.send({ message: "user already exists", insertedId: null });
+      }
+      const result = await userCollection.insertOne(user);
       res.send(result);
     });
 
-
     // Task related api
+    app.get("/tasks/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await taskCollection.findOne(query);
+      res.send(result);
+    });
+
     app.get("/tasks", async (req, res) => {
       const result = await taskCollection.find().toArray();
       res.send(result);
     });
 
-    app.post('/tasks', async (req, res) => {
+    app.patch("/tasks/:id", async (req, res) => {
+      const item = req.body;
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          title: item.title,
+          description: item.description,
+          status: item.status,
+        },
+      };
+
+      const result = await taskCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    });
+
+    app.delete('/tasks/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await taskCollection.deleteOne(query);
+      res.send(result);
+    })
+
+    app.get("/reviews", async (req, res) => {
+      const result = await reviewCollection.find().toArray();
+      res.send(result);
+    });
+
+    app.post("/newUser", async (req, res) => {
+      const newUser = req.body;
+      const result = await userCollection.insertOne(newUser);
+      res.send(result);
+    });
+    app.post("/tasks", async (req, res) => {
       const item = req.body;
       const result = await taskCollection.insertOne(item);
       res.send(result);
