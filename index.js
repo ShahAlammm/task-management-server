@@ -55,13 +55,48 @@ async function run() {
     };
 
     // users related api
-    app.get("/users/:email", verifyToken, async (req, res) => {
-
+    app.get("/users", async (req, res) => {
       const result = await userCollection.find().toArray();
       res.send(result);
     });
 
 
+    // Task related api
+    app.get("/tasks", async (req, res) => {
+      const result = await taskCollection.find().toArray();
+      res.send(result);
+    });
+
+    app.post('/tasks', async (req, res) => {
+      const item = req.body;
+      const result = await taskCollection.insertOne(item);
+      res.send(result);
+    });
+
+    // app.patch('/menu/:id', async (req, res) => {
+    //   const item = req.body;
+    //   const id = req.params.id;
+    //   const filter = { _id: new ObjectId(id) }
+    //   const updatedDoc = {
+    //     $set: {
+    //       name: item.name,
+    //       category: item.category,
+    //       price: item.price,
+    //       recipe: item.recipe,
+    //       image: item.image
+    //     }
+    //   }
+
+    //   const result = await menuCollection.updateOne(filter, updatedDoc)
+    //   res.send(result);
+    // })
+
+    // app.delete('/menu/:id', verifyToken, verifyAdmin, async (req, res) => {
+    //   const id = req.params.id;
+    //   const query = { _id: new ObjectId(id) }
+    //   const result = await menuCollection.deleteOne(query);
+    //   res.send(result);
+    // })
 
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
